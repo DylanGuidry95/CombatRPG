@@ -24,4 +24,15 @@ public class EventPubSub : MonoBehaviour
     {
         esEventSystem.Subsribe(sEvent, onEvent);
     }
+
+    /// <summary>
+    /// Unsubscribes an event from the selected string
+    /// </summary>
+    /// <param name="sEvent">Target message</param>
+    /// <param name="onEvent">onEvent intended to be removed</param>
+    protected void UnSubscribe(string sEvent, EventSystem.OnEvent onEvent)
+    {
+        esEventSystem.RemoveSubscription(sEvent, onEvent);
+    }
+
 }
