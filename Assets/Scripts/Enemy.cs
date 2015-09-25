@@ -80,6 +80,11 @@ public class Enemy : MonoBehaviour, IUnit
         }
     }
 
+    public  float speed()
+    {
+        return _speed;
+    }
+
     // // IUnit inteface Functions
     public void OnIdle()
     {
