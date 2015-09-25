@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class CombatManager : MonoBehaviour
 {
     FSM<CombatStates> _fsm;
-    public List<GameObject> Fighters;
+    List<GameObject> Fighters;
     List<GameObject> AlliesTeam;
     List<GameObject> EnemiesTeam;
 
@@ -123,6 +123,12 @@ public class CombatManager : MonoBehaviour
 
             case CombatStates.eCheckConditions:
                 {
+                    /*
+                        Checks the see if the wincondition has been met and if it has
+                        Combat is ended
+                        If it hasn't we start the combat phase all over again at the 
+                        select action state
+                    */
                     if(WinCondition())
                         ChangeState(CombatStates.eExit);
 
@@ -146,6 +152,14 @@ public class CombatManager : MonoBehaviour
             _transitions();
     }
 
+    void AttackOrder()
+    {
+        GameObject temp;
+        foreach(GameObject enemy in EnemiesTeam)
+        {
+            //if(enemy.GetComponent<Enemy>().)
+        }
+    }
     void FighterKilled()
     {
         /*
@@ -163,7 +177,8 @@ public class CombatManager : MonoBehaviour
             notified and the winner wil be declared as the other team with remaining 
             members
         */
-        if (EnemiesTeam.Capacity == 0 && AlliesTeam.Capacity > 0)
+        if ((EnemiesTeam.Capacity == 0 && AlliesTeam.Capacity > 0) ||
+            (AlliesTeam.Capacity == 0 && EnemiesTeam.Capacity > 0))
             return true;
         else
             return false;
