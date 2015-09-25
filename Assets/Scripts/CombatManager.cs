@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class CombatManager : MonoBehaviour
+public class CombatManager : EventPubSub
 {
     FSM<CombatStates> _fsm;
     List<GameObject> Fighters;
@@ -41,6 +41,7 @@ public class CombatManager : MonoBehaviour
 
     void Start()
     {
+        Subscribe("_Dead", FighterKilled);
         _transitions += CheckStates;
         StartCoroutine("Transitioning");
     }
@@ -107,6 +108,7 @@ public class CombatManager : MonoBehaviour
                         if they have all selected an action we will 
                         change state
                     */
+                    Publish("Combat_Manager_Select_Action");
                     if (ActionsSelected())
                     {
                         ChangeState(CombatStates.ePerformActions);
@@ -117,7 +119,7 @@ public class CombatManager : MonoBehaviour
             case CombatStates.ePerformActions:
                 {
                     iUnitsReady = 0;
-                    ChangeState(CombatStates.eCheckConditions);
+                    DoAttacks();
                     break;
                 }
 
@@ -130,7 +132,11 @@ public class CombatManager : MonoBehaviour
                         select action state
                     */
                     if(WinCondition())
+                    {
+                        Publish("_Combat_Manager_Leave_Combat");
                         ChangeState(CombatStates.eExit);
+                    }
+
 
                     else
                         ChangeState(CombatStates.eCheckActions);
@@ -152,14 +158,26 @@ public class CombatManager : MonoBehaviour
             _transitions();
     }
 
-    void AttackOrder()
+    void DoAttacks()
     {
-        GameObject temp;
+        //iUnitsReady += 1;
         foreach(GameObject enemy in EnemiesTeam)
         {
-            //if(enemy.GetComponent<Enemy>().)
+            if(iUnitsReady > EnemiesTeam.Capacity)
+            Publish(enemy.name + "_Combat_Manager_Attack");
+        }
+        if (iUnitsReady == EnemiesTeam.Capacity)
+        {
+            ChangeState(CombatStates.eCheckConditions);
         }
     }
+
+    bool iUnitAttacked()
+    {
+        iUnitsReady += 1;
+        return true;
+    }
+
     void FighterKilled()
     {
         /*
