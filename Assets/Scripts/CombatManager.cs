@@ -6,6 +6,10 @@ public class CombatManager : MonoBehaviour
 {
     FSM<CombatStates> _fsm;
     public List<GameObject> Fighters;
+    List<GameObject> AlliesTeam;
+    List<GameObject> EnemiesTeam;
+
+    int iUnitsReady; //keeps track of how may players have selected an actions
 
     private static CombatManager _instance;
 
@@ -20,6 +24,7 @@ public class CombatManager : MonoBehaviour
     enum CombatStates
     {
         eInit,
+        eSearch,
         eCheckActions,
         ePerformActions,
         eCheckConditions,
@@ -29,17 +34,21 @@ public class CombatManager : MonoBehaviour
     void Awake()
     {
         _fsm = new FSM<CombatStates>();
+        AddStates();
+        AddTransitions();
         _instance = this;
     }
 
     void Start()
     {
-        StartCoroutine(Transitioning());
+        _transitions += CheckStates;
+        StartCoroutine("Transitioning");
     }
 
     void AddStates()
     {
         _fsm.AddState(CombatStates.eInit);
+        _fsm.AddState(CombatStates.eSearch);
         _fsm.AddState(CombatStates.eCheckActions);
         _fsm.AddState(CombatStates.ePerformActions);
         _fsm.AddState(CombatStates.eCheckConditions);
@@ -48,19 +57,21 @@ public class CombatManager : MonoBehaviour
 
     void AddTransitions()
     {
-        _fsm.AddTransition(CombatStates.eInit, CombatStates.eCheckActions);
+        _fsm.AddTransition(CombatStates.eInit, CombatStates.eSearch);
+        _fsm.AddTransition(CombatStates.eSearch, CombatStates.eCheckActions);
         _fsm.AddTransition(CombatStates.eCheckActions, CombatStates.ePerformActions);
         _fsm.AddTransition(CombatStates.ePerformActions, CombatStates.eCheckConditions);
         _fsm.AddTransition(CombatStates.eCheckConditions, CombatStates.eExit);
         _fsm.AddTransition(CombatStates.eCheckConditions, CombatStates.eCheckActions);
+        _fsm.AddTransition(CombatStates.eExit, CombatStates.eSearch);
     }
 
-    IEnumerator Transitioning()
+    public IEnumerator Transitioning()
     {
-        while(Fighters != null)
+        while(true)
         {
-            _transitions += CheckStates;
-            _transitions();
+            if(_transitions != null)
+                _transitions();
             yield return null;
         }
     }
@@ -77,55 +88,139 @@ public class CombatManager : MonoBehaviour
         {
             case CombatStates.eInit:
                 {
-                    _transitions += InitToCheckAction;
+                    ChangeState(CombatStates.eSearch);
                     break;
                 }
+            case CombatStates.eSearch:
+                {
+                    if(MaxFighters())
+                    {
+                        ChangeState(CombatStates.eCheckActions);
+                    }
+                    break;
+                }
+
             case CombatStates.eCheckActions:
                 {
-                    _transitions += CheckActionToPerformAction;
+                    /*
+                        loops through all the fighters in the list
+                        if they have all selected an action we will 
+                        change state
+                    */
+                    if (ActionsSelected())
+                    {
+                        ChangeState(CombatStates.ePerformActions);
+                    }
                     break;
                 }
+
             case CombatStates.ePerformActions:
                 {
-                    _transitions += PerformActionToCheckConditions;
+                    iUnitsReady = 0;
+                    ChangeState(CombatStates.eCheckConditions);
                     break;
                 }
+
             case CombatStates.eCheckConditions:
                 {
-                    _transitions += CheckConditionsToCheckAction;
+                    if(WinCondition())
+                        ChangeState(CombatStates.eExit);
+
+                    else
+                        ChangeState(CombatStates.eCheckActions);
+
                     break;
                 }
+
             case CombatStates.eExit:
                 {
-                    _transitions += CheckConditionToExit;
+                    LeaveCombat();
+                    if(Fighters == null)
+                        ChangeState(CombatStates.eSearch);
                     break;
                 }
+            default:
+                break;
         }
-        if (_transitions != null)
+        if(_transitions != null)
             _transitions();
     }
 
-    void InitToCheckAction()
+    void FighterKilled()
     {
-        _fsm.Transition(CombatStates.eInit, CombatStates.eCheckActions);
+        /*
+            When a fighters HP hits 0 the Combat manager will be notifed 
+            and remove the character from combat
+        */
     }
 
-    void CheckActionToPerformAction()
+    bool WinCondition()
     {
-        _fsm.Transition(CombatStates.eCheckActions, CombatStates.ePerformActions);
+        /*
+            If a team is out of members the other team will win
+
+            When a teams size is = null then the combat manager should be
+            notified and the winner wil be declared as the other team with remaining 
+            members
+        */
+        if (EnemiesTeam.Capacity == 0 && AlliesTeam.Capacity > 0)
+            return true;
+        else
+            return false;
     }
 
-    void PerformActionToCheckConditions()
+    bool ActionsSelected()
     {
-        _fsm.Transition(CombatStates.ePerformActions, CombatStates.eCheckConditions);
-    }
-    void CheckConditionToExit()
-    {
-        _fsm.Transition(CombatStates.eCheckConditions, CombatStates.eExit);
+        /*
+            as fighters select there action they get flagged as having thier 
+            action selected. When every character has readied up the combat system
+            will perform the actions
+        */
+        if(iUnitsReady == 4)
+        {
+            return true;
+        }
+        else
+        {
+            iUnitsReady += 1;
+            return false;
+        }
+
     }
 
-    void CheckConditionsToCheckAction()
+    bool MaxFighters()
     {
-        _fsm.Transition(CombatStates.eCheckConditions, CombatStates.eExit);
+        if (Fighters.Capacity == 4)
+        {
+            foreach(GameObject fighter in Fighters)
+            {
+                /*
+                    checks the list then breaks the in units into thier
+                    appropriate team based on what scripts are attached to
+                    them
+                */
+            }
+            return true;
+        }
+        else
+            return false;
+    }
+
+    void LeaveCombat()
+    {
+        foreach(GameObject fighter in Fighters)
+        {
+            Fighters.Remove(fighter);
+        }
+    }
+
+    void ChangeState(CombatStates To)
+    {
+        _fsm.Transition(_fsm.state, To);
+        if (_transitions != null)
+        {
+            _transitions = null;
+        }
+        _transitions += CheckStates;
     }
 }
