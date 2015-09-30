@@ -118,4 +118,24 @@ public class Enemy : MonoBehaviour, IUnit
                 Debug.Log("Transition to IDLE Failed " + gameObject.name);
         }
     }
+
+    public void OnAttack()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void OnWait()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void OnUseItem()
+    {
+        throw new NotImplementedException();
+    }
+
+    public void OnReady()
+    {
+        throw new NotImplementedException();
+    }
 }
